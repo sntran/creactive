@@ -31,40 +31,28 @@ var ReactorControls = React.createClass({
     },
     addBlock: function(e) {
         var type = e.target.text;
-        this.props.onAddBlock({type: type, data: ""});
+        this.props.onAddBlock({type: type, data: ""}, this.props.newIdx);
     },
-    createBlockOption: function(blockDef) {
+    createBlockOption: function(type) {
         return (
             <a key={uuid()} className="reactor-control" href="#" onClick={this.addBlock}>
-                {blockDef.type}
+                {type}
             </a>
         )
     },
     render: function() {
+        var adderStyles = {
+            fontSize: "3em",
+            textDecoration: "none"
+        }
         return (
-            <div onClick={this.showAvailableBlocks}>
+            <div onClick={this.showAvailableBlocks} style={{textAlign: "center"}}>
+                <a href="#" style={adderStyles}>+</a>
                 <div style={{display: this.state.display}}>
                     {this.props.blocks.map(this.createBlockOption)}
                 </div>
-                +
             </div>
         )
-    }
-});
-
-var BlockContainer = React.createClass({
-    destroy: function() {
-        this.props.onRemoved(this.props.idx);
-    },
-    render: function() {
-        var props = this.props;
-        return (
-            <div className="reactor-block">
-                {window[props.type]({initialData: props.data})}
-                <a href="#" onClick={this.moveBlock}>Move</a>
-                <a href="#" onClick={this.destroy}>Remove</a>
-            </div>
-        );
     }
 });
 
@@ -77,7 +65,6 @@ var BlockContainer = React.createClass({
  * deleting an existing block, and changing the order of blocks.
  */
 var Reactor = React.createClass({
-    blockTypes: [{type: "Text"}],
     getInitialState: function() {
         return {blocks: []};
     },
@@ -86,16 +73,26 @@ var Reactor = React.createClass({
             // The Editor finished rendering, focus?
         });
     },
-    addBlock: function(blockData) {
-        var blocks = this.state.blocks.concat([blockData]);
-        this.setState({blocks: blocks});
+    updateBlockData: function(idx, data) {
+        var newBlocks = this.state.blocks;
+        newBlocks[idx].data = data;
+        this.setState({blocks: newBlocks});
+    },
+    addBlock: function(blockData, idx) {
+        var newBlocks = this.state.blocks;
+        newBlocks.splice(idx, 0, blockData);
+        this.setState({blocks: newBlocks});
     },
     createBlock: function(blockData, idx) {
-        return <BlockContainer 
-                    key = {uuid()} idx = {idx}
-                    type = {blockData.type} 
-                    data = {blockData.data}
-                    onRemoved = {this.removeBlock} />
+        return (
+            <div className="reactor-block" key={uuid()}>
+                {window[blockData.type]({
+                    idx: idx, key: uuid(),
+                    initialData: blockData.data})}
+                <a href="#" onClick={this.removeBlock.bind(this, idx)}>Remove</a>
+                <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock} newIdx={idx+1} />
+            </div>
+        );
     },
     removeBlock: function(idx) {
         var newBlocks = this.state.blocks;
@@ -105,7 +102,7 @@ var Reactor = React.createClass({
     render: function() {
         return (
             <div className="reactor">
-                <ReactorControls blocks={this.blockTypes} onAddBlock={this.addBlock} />
+                <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock} newIdx={0} />
                 {this.state.blocks.map(this.createBlock)}
             </div>
         );
@@ -120,4 +117,8 @@ var blocks = [{type:"Text", data: entry.value}];
 var reactor = document.createElement("div");
 entry.parentNode.insertBefore(reactor, entry);
 entry.style.display = "none";
-React.renderComponent(<Reactor blocks={blocks} />, reactor);
+
+React.renderComponent(
+    <Reactor blocks={blocks} blockTypes={["Text", "Image"]}/>, 
+    reactor
+);

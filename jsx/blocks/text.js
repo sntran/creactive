@@ -29,6 +29,7 @@ var Text = React.createClass({
         var newData = this.refs.editor.getDOMNode().value;
         var html = this.state.previewing? marked(newData) : this.state.html;
         this.setState({data: newData, html: html});
+        // this.props.toData(this.props.idx, newData);
     },
     render: function() {
         return (
@@ -39,7 +40,7 @@ var Text = React.createClass({
                 <textarea ref="editor"
                         value={this.state.data}
                         onChange={this.handleChange}
-                        style={{width: "100%"}}
+                        style={{width: "100%", border: "none"}}
                         rows="10" />
                 <div ref="preview"
                     dangerouslySetInnerHTML={{
