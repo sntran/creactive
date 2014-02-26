@@ -76,8 +76,9 @@ var Reactor = React.createClass({
     updateBlock: function(idx) {
         // This function is called when the user clicks outside the block.
         // It uses the block's ref to access the current data in its state.
+        var block = this.refs['block-'+idx];
         var newBlocks = this.state.blocks;
-        newBlocks[idx].data = this.refs['block-'+idx].state.data;
+        newBlocks[idx].data = block.state.data || block.props.data;
         this.setState({blocks: newBlocks});
     },
     addBlock: function(blockData, idx) {
