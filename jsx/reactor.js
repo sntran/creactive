@@ -35,7 +35,7 @@ var ReactorControls = React.createClass({
     },
     createBlockOption: function(type) {
         return (
-            <a key={uuid()} className="reactor-control" href="#" onClick={this.addBlock}>
+            <a key={uuid()} href="#" onClick={this.addBlock}>
                 {type}
             </a>
         )
@@ -69,7 +69,7 @@ var Reactor = React.createClass({
         return {blocks: []};
     },
     componentWillMount: function() {
-        this.setState({blocks: this.props.blocks}, function() {
+        this.setState({blocks: this.props.initialData}, function() {
             // The Editor finished rendering, focus?
         });
     },
@@ -88,7 +88,8 @@ var Reactor = React.createClass({
             <div className="reactor-block" key={uuid()}>
                 {window[blockData.type]({
                     idx: idx, key: uuid(),
-                    initialData: blockData.data})}
+                    data: blockData.data,
+                    toData: this.updateBlockData.bind(this, idx)})}
                 <a href="#" onClick={this.removeBlock.bind(this, idx)}>Remove</a>
                 <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock} newIdx={idx+1} />
             </div>
@@ -113,12 +114,12 @@ var Reactor = React.createClass({
 React.initializeTouchEvents(true);
 
 var entry = document.getElementById('markdown-entry');
-var blocks = [{type:"Text", data: entry.value}];
+var initialData = [{type:"Text", data: entry.value}];
 var reactor = document.createElement("div");
 entry.parentNode.insertBefore(reactor, entry);
 entry.style.display = "none";
 
 React.renderComponent(
-    <Reactor blocks={blocks} blockTypes={["Text", "Image"]}/>, 
+    <Reactor initialData={initialData} blockTypes={["Text", "Image"]}/>, 
     reactor
 );

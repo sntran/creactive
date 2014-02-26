@@ -10,7 +10,7 @@ var Text = React.createClass({
         }
     },
     getInitialState: function() {
-        var data = this.props.initialData;
+        var data = this.props.data;
         return { 
             data: data, 
             html: marked(data), 
@@ -26,10 +26,10 @@ var Text = React.createClass({
         this.setState({previewing: false});
     },
     handleChange: function(e) {
+        var self = this;
         var newData = this.refs.editor.getDOMNode().value;
         var html = this.state.previewing? marked(newData) : this.state.html;
-        this.setState({data: newData, html: html});
-        // this.props.toData(this.props.idx, newData);
+        this.props.toData(newData);
     },
     render: function() {
         return (
