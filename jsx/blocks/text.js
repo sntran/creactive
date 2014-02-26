@@ -29,7 +29,7 @@ var Text = React.createClass({
         var self = this;
         var newData = this.refs.editor.getDOMNode().value;
         var html = this.state.previewing? marked(newData) : this.state.html;
-        this.props.toData(newData);
+        this.setState({data: newData, html: html});
     },
     render: function() {
         return (

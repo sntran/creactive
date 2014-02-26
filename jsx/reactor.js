@@ -73,9 +73,11 @@ var Reactor = React.createClass({
             // The Editor finished rendering, focus?
         });
     },
-    updateBlockData: function(idx, data) {
+    updateBlock: function(idx) {
+        // This function is called when the user clicks outside the block.
+        // It uses the block's ref to access the current data in its state.
         var newBlocks = this.state.blocks;
-        newBlocks[idx].data = data;
+        newBlocks[idx].data = this.refs['block-'+idx].state.data;
         this.setState({blocks: newBlocks});
     },
     addBlock: function(blockData, idx) {
@@ -85,11 +87,10 @@ var Reactor = React.createClass({
     },
     createBlock: function(blockData, idx) {
         return (
-            <div className="reactor-block" key={uuid()}>
+            <div className="reactor-block" key={uuid()} onBlur={this.updateBlock.bind(this, idx)}>
                 {window[blockData.type]({
-                    idx: idx, key: uuid(),
-                    data: blockData.data,
-                    toData: this.updateBlockData.bind(this, idx)})}
+                    ref: 'block-'+idx,
+                    data: blockData.data})}
                 <a href="#" onClick={this.removeBlock.bind(this, idx)}>Remove</a>
                 <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock} newIdx={idx+1} />
             </div>
