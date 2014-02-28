@@ -84,10 +84,15 @@ var ReactorBlock = React.createClass({
         var btn = e.currentTarget.parentNode;
         var pos = getPos(btn);
         e.dataTransfer.setDragImage(blockNode, pos[0], pos[1]);
-        e.dataTransfer.setData('text/plain', this.toData());
+        // We store the index of the block being dragged.
+        e.dataTransfer.setData('text/idx', this.props.idx);
     },
-    handleDragEnter: function() {
+    handleDragEnter: function(e) {
         /* dispatched when another component is dragged over this component. */
+        /* Most areas of a web page or application are not valid places to drop data.
+        Thus, the default handling for these events is to not allow a drop.
+        We prevent the default handling by cancelling the event so we can drop */
+        e.preventDefault(); // Necessary. Allows us to drop.
         this.setState({isDragOver: true});
     },
     handleDragLeave: function() {
@@ -96,6 +101,9 @@ var ReactorBlock = React.createClass({
     },
     handleDragOver: function(e) {
         /* dispatched when another component is moved inside this component. */
+        /* Most areas of a web page or application are not valid places to drop data.
+        Thus, the default handling for these events is to not allow a drop.
+        We prevent the default handling by cancelling the event so we can drop */
         e.preventDefault(); // Necessary. Allows us to drop.
         e.dataTransfer.dropEffect = 'move';
         return false;
@@ -104,12 +112,11 @@ var ReactorBlock = React.createClass({
         this.setState({isBeingDragged: false, isDragOver: false});
     },
     handleDrop: function(e) {
+        // The target block - the block being dragged onto - will receive `drop` event.
         e.stopPropagation();
-        var otherBlockData = e.dataTransfer.getData('text/plain');
+        var droppeeIdx  = parseInt(e.dataTransfer.getData('text/idx'));
+        this.props.onBeingDropped(droppeeIdx);
         return false;
-    },
-    displayPositioner: function() {
-
     },
     render: function() {
         var state = this.state;
@@ -179,14 +186,24 @@ var Reactor = React.createClass({
             <div key={uuid()} >
                 <ReactorBlock 
                     ref={'block-'+idx}
+                    idx={idx}
                     type={blockData.type}
                     data={blockData.data}
                     onBlur={this.updateBlock.bind(this, idx)}
+                    onBeingDropped={this.swapBlock.bind(this, idx)}
                     onDestroy={this.removeBlock.bind(this, idx)}
                 />
                 <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock.bind(this, idx+1)} />
             </div>
         );
+    },
+    swapBlock: function(targetIdx, sourceIdx) {
+        if (sourceIdx === targetIdx) return;
+        var blocks = this.state.blocks;
+        var temp = blocks[sourceIdx];
+        blocks[sourceIdx] = blocks[targetIdx];
+        blocks[targetIdx] = temp;
+        this.setState({blocks: blocks});
     },
     removeBlock: function(idx) {
         var newBlocks = this.state.blocks;
