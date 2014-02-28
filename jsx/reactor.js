@@ -31,7 +31,7 @@ var ReactorControls = React.createClass({
     },
     addBlock: function(e) {
         var type = e.target.text;
-        this.props.onAddBlock({type: type, data: ""}, this.props.newIdx);
+        this.props.onAddBlock({type: type, data: ""});
     },
     createBlockOption: function(type) {
         return (
@@ -51,6 +51,93 @@ var ReactorControls = React.createClass({
                 <div style={{display: this.state.display}}>
                     {this.props.blocks.map(this.createBlockOption)}
                 </div>
+            </div>
+        )
+    }
+});
+
+function getPos(ele){
+    var x=0;
+    var y=0;
+    while(true){
+        x += ele.offsetLeft;
+        y += ele.offsetTop;
+        if(ele.offsetParent === null){
+            break;
+        }
+        ele = ele.offsetParent;
+    }
+    return [x, y];
+}
+
+var ReactorBlock = React.createClass({
+    getInitialState: function() {
+        return {isDragOver: false, isBeingDragged: false};
+    },
+    toData: function() {
+        var block = this.refs.block;
+        return (block.state || block.props).data;
+    },
+    handleDragStart: function(e) {
+        e.dataTransfer.effectAllowed = "move";
+        var blockNode = this.refs.block.getDOMNode();
+        var btn = e.currentTarget.parentNode;
+        var pos = getPos(btn);
+        e.dataTransfer.setDragImage(blockNode, pos[0], pos[1]);
+        e.dataTransfer.setData('text/plain', this.toData());
+    },
+    handleDragEnter: function() {
+        /* dispatched when another component is dragged over this component. */
+        this.setState({isDragOver: true});
+    },
+    handleDragLeave: function() {
+        /* dispatched when the other component is dragged outside this component. */
+        this.setState({isDragOver: false});
+    },
+    handleDragOver: function(e) {
+        /* dispatched when another component is moved inside this component. */
+        e.preventDefault(); // Necessary. Allows us to drop.
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    },
+    handleDragEnd: function() {
+        this.setState({isBeingDragged: false, isDragOver: false});
+    },
+    handleDrop: function(e) {
+        e.stopPropagation();
+        var otherBlockData = e.dataTransfer.getData('text/plain');
+        return false;
+    },
+    displayPositioner: function() {
+
+    },
+    render: function() {
+        var state = this.state;
+        var blockStyles = {
+            opacity: state.isBeingDragged? '0.4' : '1'
+        };
+        var dropzoneStyles = {
+            border: state.isDragOver? "2px dashed #000" : "none"
+        };
+        return (
+            <div className="reactor-block"
+                onDragStart={this.handleDragStart}
+                onDragEnd={this.handleDragEnd}
+                onDrop={this.handleDrop}
+                onBlur={this.props.onBlur}
+            >   
+                <p ref='dropzone' style={dropzoneStyles}
+                    onDragOver={this.handleDragOver}
+                    onDragEnter={this.handleDragEnter}
+                    onDragLeave={this.handleDragLeave}
+                >Drop Block Here</p>
+                {window[this.props.type]({
+                    ref: 'block',
+                    data: this.props.data,
+                    style: blockStyles
+                })}
+                <a href="#" onClick={this.props.onDestroy}>Remove</a>
+                <a href="#" draggable={true} onClick={this.displayPositioner}>Reorder</a>
             </div>
         )
     }
@@ -78,22 +165,26 @@ var Reactor = React.createClass({
         // It uses the block's ref to access the current data in its state.
         var block = this.refs['block-'+idx];
         var newBlocks = this.state.blocks;
-        newBlocks[idx].data = block.state.data || block.props.data;
+        newBlocks[idx].data = block.toData();
         this.setState({blocks: newBlocks});
     },
-    addBlock: function(blockData, idx) {
+    addBlock: function(idx, blockData) {
+        var block = this.refs['block-'+idx];
         var newBlocks = this.state.blocks;
         newBlocks.splice(idx, 0, blockData);
         this.setState({blocks: newBlocks});
     },
     createBlock: function(blockData, idx) {
         return (
-            <div className="reactor-block" key={uuid()} onBlur={this.updateBlock.bind(this, idx)}>
-                {window[blockData.type]({
-                    ref: 'block-'+idx,
-                    data: blockData.data})}
-                <a href="#" onClick={this.removeBlock.bind(this, idx)}>Remove</a>
-                <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock} newIdx={idx+1} />
+            <div key={uuid()} >
+                <ReactorBlock 
+                    ref={'block-'+idx}
+                    type={blockData.type}
+                    data={blockData.data}
+                    onBlur={this.updateBlock.bind(this, idx)}
+                    onDestroy={this.removeBlock.bind(this, idx)}
+                />
+                <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock.bind(this, idx+1)} />
             </div>
         );
     },
@@ -105,7 +196,7 @@ var Reactor = React.createClass({
     render: function() {
         return (
             <div className="reactor">
-                <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock} newIdx={0} />
+                <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock.bind(this, 0)}/>
                 {this.state.blocks.map(this.createBlock)}
             </div>
         );
