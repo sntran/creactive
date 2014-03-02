@@ -23,15 +23,41 @@ function uuid() {
  * the editor to add a new block.
  */
 var ReactorControls = React.createClass({
+    CONTROLS: {
+        LIST: "",
+        ADD: "+",
+        DROP: "Drop Block Here"
+    },
     getInitialState: function() {
-        return {display: 'none'};
+        return {control: this.CONTROLS.ADD};
     },
     showAvailableBlocks: function() {
-        this.setState({display: this.state.display === 'none' ? 'block' : 'none'});
+        this.setState({control: this.CONTROLS.LIST});
     },
     addBlock: function(e) {
         var type = e.target.text;
         this.props.onAddBlock({type: type, data: ""});
+    },
+    handleDragEnter: function(e) {
+        /* dispatched when another component is dragged over this component. */
+        /* Most areas of a web page or application are not valid places to drop data.
+        Thus, the default handling for these events is to not allow a drop.
+        We prevent the default handling by cancelling the event so we can drop */
+        e.preventDefault(); // Necessary. Allows us to drop.
+        this.setState({control: this.CONTROLS.DROP});
+    },
+    handleDragLeave: function() {
+        /* dispatched when the other component is dragged outside this component. */
+        this.setState({control: this.CONTROLS.ADD});
+    },
+    handleDragOver: function(e) {
+        /* dispatched when another component is moved inside this component. */
+        /* Most areas of a web page or application are not valid places to drop data.
+        Thus, the default handling for these events is to not allow a drop.
+        We prevent the default handling by cancelling the event so we can drop */
+        e.preventDefault(); // Necessary. Allows us to drop.
+        e.dataTransfer.dropEffect = 'move';
+        return false;
     },
     createBlockOption: function(type) {
         return (
@@ -41,15 +67,26 @@ var ReactorControls = React.createClass({
         )
     },
     render: function() {
+        var state = this.state, CONTROLS = this.CONTROLS;
+        var blockStyles = {
+            textAlign: "center",
+            border: (state.control == CONTROLS.DROP)? "2px dashed #000" : "none"
+        }
         var adderStyles = {
             fontSize: "3em",
-            textDecoration: "none"
+            textDecoration: "none",
+            cursor: "pointer"
         }
         return (
-            <div onClick={this.showAvailableBlocks} style={{textAlign: "center"}}>
-                <a href="#" style={adderStyles}>+</a>
-                <div style={{display: this.state.display}}>
-                    {this.props.blocks.map(this.createBlockOption)}
+            <div onClick={this.showAvailableBlocks} 
+                onDragOver={this.handleDragOver}
+                onDragEnter={this.handleDragEnter}
+                onDragLeave={this.handleDragLeave}
+                style={blockStyles}
+            >
+                <span style={adderStyles}>{state.control}</span>
+                <div style={{display: (state.control === CONTROLS.LIST)? "block":"none"}}>
+                    {this.props.blockTypes.map(this.createBlockOption)}
                 </div>
             </div>
         )
@@ -71,9 +108,6 @@ function getPos(ele){
 }
 
 var ReactorBlock = React.createClass({
-    getInitialState: function() {
-        return {isDragOver: false, isBeingDragged: false};
-    },
     toData: function() {
         var block = this.refs.block;
         return (block.state || block.props).data;
@@ -87,29 +121,8 @@ var ReactorBlock = React.createClass({
         // We store the index of the block being dragged.
         e.dataTransfer.setData('text/idx', this.props.idx);
     },
-    handleDragEnter: function(e) {
-        /* dispatched when another component is dragged over this component. */
-        /* Most areas of a web page or application are not valid places to drop data.
-        Thus, the default handling for these events is to not allow a drop.
-        We prevent the default handling by cancelling the event so we can drop */
-        e.preventDefault(); // Necessary. Allows us to drop.
-        this.setState({isDragOver: true});
-    },
-    handleDragLeave: function() {
-        /* dispatched when the other component is dragged outside this component. */
-        this.setState({isDragOver: false});
-    },
-    handleDragOver: function(e) {
-        /* dispatched when another component is moved inside this component. */
-        /* Most areas of a web page or application are not valid places to drop data.
-        Thus, the default handling for these events is to not allow a drop.
-        We prevent the default handling by cancelling the event so we can drop */
-        e.preventDefault(); // Necessary. Allows us to drop.
-        e.dataTransfer.dropEffect = 'move';
-        return false;
-    },
     handleDragEnd: function() {
-        this.setState({isBeingDragged: false, isDragOver: false});
+
     },
     handleDrop: function(e) {
         // The target block - the block being dragged onto - will receive `drop` event.
@@ -120,28 +133,21 @@ var ReactorBlock = React.createClass({
     },
     render: function() {
         var state = this.state;
-        var blockStyles = {
-            opacity: state.isBeingDragged? '0.4' : '1'
-        };
-        var dropzoneStyles = {
-            border: state.isDragOver? "2px dashed #000" : "none"
-        };
         return (
             <div className="reactor-block"
                 onDragStart={this.handleDragStart}
                 onDragEnd={this.handleDragEnd}
                 onDrop={this.handleDrop}
                 onBlur={this.props.onBlur}
-            >   
-                <p ref='dropzone' style={dropzoneStyles}
-                    onDragOver={this.handleDragOver}
-                    onDragEnter={this.handleDragEnter}
-                    onDragLeave={this.handleDragLeave}
-                >Drop Block Here</p>
+            >
+                <ReactorControls 
+                    blockTypes={this.props.blockTypes} 
+                    onAddBlock={this.props.onAddBlock} 
+                />
+
                 {window[this.props.type]({
                     ref: 'block',
-                    data: this.props.data,
-                    style: blockStyles
+                    data: this.props.data
                 })}
                 <a href="#" onClick={this.props.onDestroy}>Remove</a>
                 <a href="#" draggable={true} onClick={this.displayPositioner}>Reorder</a>
@@ -189,16 +195,16 @@ var Reactor = React.createClass({
                     idx={idx}
                     type={blockData.type}
                     data={blockData.data}
+                    blockTypes={this.props.blockTypes}
                     onBlur={this.updateBlock.bind(this, idx)}
                     onBeingDropped={this.swapBlock.bind(this, idx)}
+                    onAddBlock={this.addBlock.bind(this, idx)}
                     onDestroy={this.removeBlock.bind(this, idx)}
                 />
-                <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock.bind(this, idx+1)} />
             </div>
         );
     },
     swapBlock: function(targetIdx, sourceIdx) {
-        if (sourceIdx === targetIdx) return;
         var blocks = this.state.blocks;
         var temp = blocks[sourceIdx];
         blocks[sourceIdx] = blocks[targetIdx];
@@ -211,10 +217,11 @@ var Reactor = React.createClass({
         this.setState({blocks: newBlocks});
     },
     render: function() {
+        var blocks = this.state.blocks, total = blocks.length;
         return (
             <div className="reactor">
-                <ReactorControls blocks={this.props.blockTypes} onAddBlock={this.addBlock.bind(this, 0)}/>
-                {this.state.blocks.map(this.createBlock)}
+                {blocks.map(this.createBlock)}
+                <ReactorControls blockTypes={this.props.blockTypes} onAddBlock={this.addBlock.bind(this, total)}/>
             </div>
         );
     }
