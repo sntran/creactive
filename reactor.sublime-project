@@ -1,0 +1,16 @@
+{
+  "folders":
+  [
+    {
+      "follow_symlinks": true,
+      "path": "."
+    }
+  ],
+  "build_systems":
+    [
+      {
+          "name": "JSX Transform",
+          "shell_cmd": "jsx $project_path/jsx $project_path/js/components"
+      }
+    ]
+}

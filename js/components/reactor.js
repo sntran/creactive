@@ -42,7 +42,7 @@ require(['react', 'blocks/wysiwyg', 'blocks/list'], function (React, TextBlock, 
      * its `props`. Each option, once clicked, will trigger the handler of
      * the editor to add a new block.
      */
-    var ReactorControls = React.createClass({
+    var ReactorControls = React.createClass({displayName: 'ReactorControls',
         CONTROLS: {
             LIST: "",
             ADD: "+",
@@ -81,9 +81,9 @@ require(['react', 'blocks/wysiwyg', 'blocks/list'], function (React, TextBlock, 
         },
         createBlockOption: function(type) {
             return (
-                <a key={uuid()} href="#" onClick={this.addBlock}>
-                    {type}
-                </a>
+                React.DOM.a( {key:uuid(), href:"#", onClick:this.addBlock}, 
+                    type
+                )
             )
         },
         render: function() {
@@ -98,17 +98,17 @@ require(['react', 'blocks/wysiwyg', 'blocks/list'], function (React, TextBlock, 
                 cursor: "pointer"
             }
             return (
-                <div onClick={this.showAvailableBlocks} 
-                    onDragOver={this.handleDragOver}
-                    onDragEnter={this.handleDragEnter}
-                    onDragLeave={this.handleDragLeave}
-                    style={blockStyles}
-                >
-                    <span style={adderStyles}>{state.control}</span>
-                    <div style={{display: (state.control === CONTROLS.LIST)? "block":"none"}}>
-                        {this.props.blockTypes.map(this.createBlockOption)}
-                    </div>
-                </div>
+                React.DOM.div( {onClick:this.showAvailableBlocks, 
+                    onDragOver:this.handleDragOver,
+                    onDragEnter:this.handleDragEnter,
+                    onDragLeave:this.handleDragLeave,
+                    style:blockStyles}
+                , 
+                    React.DOM.span( {style:adderStyles}, state.control),
+                    React.DOM.div( {style:{display: (state.control === CONTROLS.LIST)? "block":"none"}}, 
+                        this.props.blockTypes.map(this.createBlockOption)
+                    )
+                )
             )
         }
     });
@@ -127,7 +127,7 @@ require(['react', 'blocks/wysiwyg', 'blocks/list'], function (React, TextBlock, 
         return [x, y];
     }
 
-    var Draggable = React.createClass({
+    var Draggable = React.createClass({displayName: 'Draggable',
         handleDragStart: function(e) {
             e.dataTransfer.effectAllowed = "move";
             var blockNode = this.getDOMNode();
@@ -150,13 +150,13 @@ require(['react', 'blocks/wysiwyg', 'blocks/list'], function (React, TextBlock, 
         render: function() {
             var state = this.state;
             return (
-                <div className="draggable"
-                    onDragStart={this.handleDragStart}
-                    onDragEnd={this.handleDragEnd}
-                    onDrop={this.handleDrop}
-                >
-                    {this.props.children}
-                </div>
+                React.DOM.div( {className:"draggable",
+                    onDragStart:this.handleDragStart,
+                    onDragEnd:this.handleDragEnd,
+                    onDrop:this.handleDrop}
+                , 
+                    this.props.children
+                )
             )
         }
     });
@@ -169,7 +169,7 @@ require(['react', 'blocks/wysiwyg', 'blocks/list'], function (React, TextBlock, 
      * It also renders various controls for block such as adding a new block,
      * deleting an existing block, and changing the order of blocks.
      */
-    var Reactor = React.createClass({
+    var Reactor = React.createClass({displayName: 'Reactor',
         getInitialState: function() {
             return {blocks: []};
         },
@@ -203,28 +203,28 @@ require(['react', 'blocks/wysiwyg', 'blocks/list'], function (React, TextBlock, 
         },
         renderBlock: function(blockData, idx) {
             return (
-                <Draggable key={uuid()} onBeingDropped={this.swapBlock.bind(this, idx)}>
-                    <ReactorControls 
-                        blockTypes={this.props.blockTypes} 
-                        onAddBlock={this.addBlock.bind(this, idx)} 
-                    />
-                    {Reactor.Blocks[blockData.type]({
+                Draggable( {key:uuid(), onBeingDropped:this.swapBlock.bind(this, idx)}, 
+                    ReactorControls( 
+                        {blockTypes:this.props.blockTypes, 
+                        onAddBlock:this.addBlock.bind(this, idx)} 
+                    ),
+                    Reactor.Blocks[blockData.type]({
                         ref: 'block',
                         data: blockData.data,
                         onData: this.updateBlock.bind(this, idx)
-                    })}
-                    <a href="#" onClick={this.removeBlock.bind(this, idx)}>Remove</a>
-                    <a href="#" draggable={true} onClick={this.displayPositioner}>Reorder</a>
-                </Draggable>
+                    }),
+                    React.DOM.a( {href:"#", onClick:this.removeBlock.bind(this, idx)}, "Remove"),
+                    React.DOM.a( {href:"#", draggable:true, onClick:this.displayPositioner}, "Reorder")
+                )
             );
         },
         render: function() {
             var blocks = this.state.blocks, total = blocks.length;
             return (
-                <div className="reactor">
-                    {blocks.map(this.renderBlock)}
-                    <ReactorControls blockTypes={this.props.blockTypes} onAddBlock={this.addBlock.bind(this, total)}/>
-                </div>
+                React.DOM.div( {className:"reactor"}, 
+                    blocks.map(this.renderBlock),
+                    ReactorControls( {blockTypes:this.props.blockTypes, onAddBlock:this.addBlock.bind(this, total)})
+                )
             );
         }
     });
@@ -244,7 +244,7 @@ require(['react', 'blocks/wysiwyg', 'blocks/list'], function (React, TextBlock, 
     entry.style.display = "none";
 
     React.renderComponent(
-        <Reactor initialData={initialData} blockTypes={["Text", "List"]}/>, 
+        Reactor( {initialData:initialData, blockTypes:["Text", "List"]}), 
         reactor
     );
 });
